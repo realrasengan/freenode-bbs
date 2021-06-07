@@ -137,6 +137,16 @@ async function parse(from,msg,isop) {
                 let post_data = await Database.findPost(Math.round(msg[1]));
                 IRC.say(constants.IRC_CHAN_CONSOLE,constants.BOLD+'['+Math.round(msg[1])+'] Vote recorded from '+from+constants.BOLD);
                 IRC.say(constants.IRC_CHAN_DISCUSSION,constants.BOLD+'['+post_data.PID+'] '+IRC.colour.red(post_data.TITLE)+' '+IRC.colour.grey('['+post_data.NICK+']')+' '+IRC.colour.underline.blue(post_data.URL)+constants.BOLD);
+
+                let output="";
+                let bbs = await Database.getFrontpage();
+                for(x=0;x<bbs.length;x++) {
+                  output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td></tr>";
+                }
+                fs.writeFileSync(constants.HTML_INDEX,output);
+                fs.writeFileSync(constants.JSON_INDEX,JSON.stringify(bbs));
+                fs.writeFileSync(constants.RSS_INDEX,rss.createRSS(bbs));
+
                 break;
             }
             break;
@@ -194,16 +204,4 @@ async function parse(from,msg,isop) {
       break;
   }
 };
-
-// Web page updater
-setInterval(async () => {
-  let bbs = await Database.getFrontpage();
-  let output="";
-  for(x=0;x<bbs.length;x++) {
-    output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td></tr>";
-  }
-  fs.writeFileSync(constants.HTML_INDEX,output);
-  fs.writeFileSync(constants.JSON_INDEX,JSON.stringify(bbs));
-  fs.writeFileSync(constants.RSS_INDEX,rss.createRSS(bbs));
-},5000,Database,constants);
 
