@@ -1,11 +1,11 @@
 # Simple Bot
-### v0.02 ALPHA
+### v0.03 ALPHA
 
 [bbs.freenode.net](https://bbs.freenode.net/)
 
 ## Installation Instructions
 ```
-npm install irc irc-colors sqlite3 sqlite-async express psl striptags timeago.js
+npm install irc irc-colors sqlite3 sqlite-async express psl striptags timeago.js html-entities
 node createdb.js
 node bot.js
 ```

@@ -3,6 +3,7 @@ const psl = require('psl');
 const striptags = require('striptags');
 const timeago = require('timeago.js');
 
+const rss = require('./lib/rss.js'); // rss feed
 const util = require('./lib/util.js');  // random functions
 const Help = require('./lib/help.js');  // help text
 const constants = require('./lib/constants.js');  // constants and settings
@@ -35,6 +36,10 @@ IRC.addListener('raw',async (message) => {
       IRC.mode(constants.IRC_CHAN_DISCUSSION,'+b',message.args[1]+"!*@*");
       IRC.remove(constants.IRC_CHAN_CONSOLE,message.args[1],"Sorry, but only primary nicks may join this channel.");
       IRC.remove(constants.IRC_CHAN_DISCUSSION,message.args[1],"Sorry, but only primary nicks may join this channel.");
+      setTimeout(() => {
+        IRC.mode(constants.IRC_CHAN_CONSOLE,'-b',message.args[1]+"!*@*");
+        IRC.mode(constants.IRC_CHAN_DISCUSSION,'-b',message.args[1]+"!*@*");
+      },10000);
     }
     else {
       if(await Database.userRegister(message.args[2]))
@@ -198,5 +203,7 @@ setInterval(async () => {
     output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td></tr>";
   }
   fs.writeFileSync(constants.HTML_INDEX,output);
+  fs.writeFileSync(constants.JSON_INDEX,JSON.stringify(bbs));
+  fs.writeFileSync(constants.RSS_INDEX,rss.createRSS(bbs));
 },5000,Database,constants);
 
