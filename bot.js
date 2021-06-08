@@ -205,3 +205,14 @@ async function parse(from,msg,isop) {
   }
 };
 
+
+setInterval(async () => {
+  let output="";
+  let bbs = await Database.getFrontpage();
+  for(x=0;x<bbs.length;x++) {
+    output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td></tr>";
+  }
+  fs.writeFileSync(constants.HTML_INDEX,output);
+  fs.writeFileSync(constants.JSON_INDEX,JSON.stringify(bbs));
+  fs.writeFileSync(constants.RSS_INDEX,rss.createRSS(bbs));
+},60000);
