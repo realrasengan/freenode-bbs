@@ -104,7 +104,7 @@ async function parse(from,msg,isop) {
         if(title.length<constants.TITLE_MIN_LENGTH) {
           IRC.notice_chan(from,"Title must be > "+constants.TITLE_MIN_LENGTH+" chars",constants.IRC_CHAN_CONSOLE);
         }
-        else if(striptags(title)!==title||title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==title)
+        else if(striptags(title)!==title||title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\}\= ]/g,"")!==title)
           IRC.notice_chan(from,"Sorry, but these characters are not allowed in a title.",constants.IRC_CHAN_CONSOLE);
         else {
           if(!await Database.siteCanPost(url.toLowerCase()))
@@ -193,7 +193,7 @@ async function parse(from,msg,isop) {
         if(!result)
           IRC.notice_chan(from,"That post does not exist or was already posted on the BBS.",constants.IRC_CHAN_CONSOLE);
         else if(isop) {
-          if(striptags(title)!==title || title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==title)
+          if(striptags(title)!==title || title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\}\= ]/g,"")!==title)
             IRC.notice_chan(from,"Sorry, but these characters are not allowed in a title.",constants.IRC_CHAN_CONSOLE);
           else {
             await Database.editPost(pid,title);
@@ -220,7 +220,8 @@ async function updateAll() {
   let output="";
   let bbs = await Database.getFrontpage();
   for(x=0;x<bbs.length;x++) {
-    output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td><td class='comment'>"
+    let votes = await Database.getVotes(bbs[x].PID);
+    output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>"+votes.length+" votes. Submitted by <u>"+bbs[x].NICK+"</u> and promoted about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td><td class='comment'>"
           +(bbs[x].CID?"<a href='"+constants.CHIT_URL+bbs[x].CID+".html'>Comment</a>":"")+"</td></tr>";
   }
   fs.writeFileSync(constants.HTML_INDEX,output);
