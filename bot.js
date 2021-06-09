@@ -24,7 +24,18 @@ IRC.addListener('raw',async (message) => {
     if(await Database.userIsRegistered(message.nick))
       parse(message.nick,message.args[1],(message.args[0].substr(0,1)=='#'));
   }
-  else if(message.command==='JOIN') {
+  else if(message.command==='NOTICE' && message.nick && message.nick.toLowerCase()===constants.CHIT_BOT.toLowerCase()) {
+    let _msg = message.args[1];
+    let msg = _msg.split(" ");
+    if(msg.length===3 && msg[1].toLowerCase()===constants.IRC_NICK.toLowerCase()) {
+      chitpid = parseInt(msg[0]);
+      bbspid = msg[2].replace("[","").replace("]","");
+      bbspid = parseInt(bbspid);
+      await Database.addChit(bbspid,chitpid);
+      await updateAll();
+    }
+  }
+  else if(message.command==='JOIN' && message.args[0].toLowerCase()!==constants.CHIT_CHANNEL) {
     if(!await Database.userIsRegistered(message.nick))
       IRC.whois(message.nick);
     else
@@ -92,7 +103,7 @@ async function parse(from,msg,isop) {
         if(title.length<constants.TITLE_MIN_LENGTH) {
           IRC.notice_chan(from,"Title must be > "+constants.TITLE_MIN_LENGTH+" chars",constants.IRC_CHAN_CONSOLE);
         }
-        else if(striptags(title)!==title||title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\; ]/g,"")!==title)
+        else if(striptags(title)!==title||title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==title)
           IRC.notice_chan(from,"Sorry, but these characters are not allowed in a title.",constants.IRC_CHAN_CONSOLE);
         else {
           if(!await Database.siteCanPost(url.toLowerCase()))
@@ -137,16 +148,9 @@ async function parse(from,msg,isop) {
                 let post_data = await Database.findPost(Math.round(msg[1]));
                 IRC.say(constants.IRC_CHAN_CONSOLE,constants.BOLD+'['+Math.round(msg[1])+'] Vote recorded from '+from+constants.BOLD);
                 IRC.say(constants.IRC_CHAN_DISCUSSION,constants.BOLD+'['+post_data.PID+'] '+IRC.colour.red(post_data.TITLE)+' '+IRC.colour.grey('['+post_data.NICK+']')+' '+IRC.colour.underline.blue(post_data.URL)+constants.BOLD);
+                IRC.say(constants.CHIT_CHANNEL,"chit ["+post_data.PID+"] "+post_data.TITLE+" ["+post_data.NICK+"] "+post_data.URL);
 
-                let output="";
-                let bbs = await Database.getFrontpage();
-                for(x=0;x<bbs.length;x++) {
-                  output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td></tr>";
-                }
-                fs.writeFileSync(constants.HTML_INDEX,output);
-                fs.writeFileSync(constants.JSON_INDEX,JSON.stringify(bbs));
-                fs.writeFileSync(constants.RSS_INDEX,rss.createRSS(bbs));
-
+                await updateAll();
                 break;
             }
             break;
@@ -188,7 +192,7 @@ async function parse(from,msg,isop) {
         if(!result)
           IRC.notice_chan(from,"That post does not exist or was already posted on the BBS.",constants.IRC_CHAN_CONSOLE);
         else if(isop) {
-          if(striptags(title)!==title || title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\; ]/g,"")!==title)
+          if(striptags(title)!==title || title.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==title)
             IRC.notice_chan(from,"Sorry, but these characters are not allowed in a title.",constants.IRC_CHAN_CONSOLE);
           else {
             await Database.editPost(pid,title);
@@ -207,12 +211,18 @@ async function parse(from,msg,isop) {
 
 
 setInterval(async () => {
+  await updateAll()
+},60000);
+
+
+async function updateAll() {
   let output="";
   let bbs = await Database.getFrontpage();
   for(x=0;x<bbs.length;x++) {
-    output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td></tr>";
+    output+="<tr><td class='number'>"+(x+1)+"</td><td class='website'><a href='"+bbs[x].URL+"' target='_new'>"+striptags(bbs[x].TITLE)+"</a> <small>("+psl.get(util.extractHostname(bbs[x].URL))+")</small><br><small>Submitted by <u>"+bbs[x].NICK+"</u> about "+timeago.format(bbs[x].BBSTIMESTAMP*1000)+"</small></td><td class='comment'>"
+          +(bbs[x].CID?"<a href='"+constants.CHIT_URL+bbs[x].CID+".html'>Comment</a>":"")+"</td></tr>";
   }
   fs.writeFileSync(constants.HTML_INDEX,output);
   fs.writeFileSync(constants.JSON_INDEX,JSON.stringify(bbs));
   fs.writeFileSync(constants.RSS_INDEX,rss.createRSS(bbs));
-},60000);
+}
