@@ -33,6 +33,7 @@ IRC.addListener('raw',async (message) => {
       bbspid = parseInt(bbspid);
       await Database.addChit(bbspid,chitpid);
       await updateAll();
+      IRC.say(constants.IRC_CHAN_DISCUSSION,"Comment on ["+bbspid+"] with freenode Chit in #freenode-chit by typing 'reply "+chitpid+" <comment>'");
     }
   }
   else if(message.command==='JOIN' && message.args[0].toLowerCase()!==constants.CHIT_CHANNEL) {
